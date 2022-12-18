@@ -1,18 +1,13 @@
-//
-//  ViewController.swift
-//  project4
-//
-//  Created by Артем Чжен on 15/12/22.
-//
-
 import UIKit
 import WebKit
 
-class ViewController: UIViewController,
-                      WKNavigationDelegate {
+class ViewController: UIViewController, WKNavigationDelegate {
     var webView: WKWebView!
     var progressView: UIProgressView!
-    var websites = ["github.com", "iccup.com"]
+    
+    
+    var websites: [String]!
+    var selectedWebsite: Int!
     
     override func loadView() {
         webView = WKWebView()
@@ -23,24 +18,39 @@ class ViewController: UIViewController,
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        navigationItem.largeTitleDisplayMode = .never
+        
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Open", style: .plain, target: self, action: #selector(openTapped))
+        let back = UIBarButtonItem(title: "Back", style: .plain, target: webView, action: #selector(webView.goBack ))
+        
+        navigationItem.backBarButtonItem = UIBarButtonItem(barButtonSystemItem: .done, target: webView, action: #selector(webView.goForward))
         
         let spacer = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+        //        создает новый элемент кнопки которую нельзя нажать?
+        
         let refresh = UIBarButtonItem(barButtonSystemItem: .refresh, target: webView, action: #selector(webView.reload))
-        
+        //        создает кнопку обновление страницы
+        let forward = UIBarButtonItem(title: "Forward", style: .plain, target: webView, action: #selector(webView.goForward))
         progressView = UIProgressView(progressViewStyle: .default)
-        progressView.sizeToFit()
-        let progressButton = UIBarButtonItem(customView: progressView)
+        //        показывает степерь заполненности прогресса
         
-        toolbarItems = [progressButton, spacer, refresh]
+        progressView.sizeToFit()
+        //        говорит чтобы автоматически подогнал размеры заркужеченого макета
+        
+        let progressButton = UIBarButtonItem(customView: progressView)
+        //         показывает строку загрузки(прогресс) (заворачивает UIProgressView на UIBattonItem чтобы макет мог попасть на панель инструментов).
+        toolbarItems = [progressButton, spacer, refresh, forward, back]
         navigationController?.isToolbarHidden = false
         
         webView.addObserver(self, forKeyPath: #keyPath(WKWebView.estimatedProgress), options: .new, context: nil)
         
-        let url = URL(string: "https://" + websites[0] )!
+        print(selectedWebsite!)
+        print(websites!)
+        let url = URL(string: "https://" + websites[selectedWebsite])!
+        
+        //        изменяет изначальную страницу чтобы она не была жестко запрограммирована
         webView.load(URLRequest(url: url))
         webView.allowsBackForwardNavigationGestures = true
-        
     }
     
     @objc func openTapped() {
@@ -52,19 +62,25 @@ class ViewController: UIViewController,
         }
         
         ac.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        
         ac.popoverPresentationController?.barButtonItem =
         navigationItem.rightBarButtonItem
+        
         present(ac, animated: true)
+        //        добавляет кнопку Cancel а так же
     }
     
     func openPage (action: UIAlertAction) {
         guard let actionTitle = action.title else { return }
+        
         guard let url = URL(string: "https://" + actionTitle) else { return }
         webView.load(URLRequest(url: url))
+        //        берет title соединяет с https для безопасности и создает URL не как String
     }
     
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         title = webView.title
+        // обновляет title чтобы стать заголовком на веб странице
     }
     
     override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
@@ -80,10 +96,13 @@ class ViewController: UIViewController,
                 if host.contains(website) {
                     decisionHandler(.allow)
                     return
+                    //                    проверяет  URL в безопастном списке или нет
                 }
             }
         }
-        
+        let dd = UIAlertController(title: "This site is blocked!", message: nil , preferredStyle: .alert)
+        dd.addAction(UIAlertAction(title: "OK", style: .cancel))
+        present(dd, animated: true)
         decisionHandler(.cancel)
     }
 }
